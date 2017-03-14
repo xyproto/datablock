@@ -122,7 +122,7 @@ func (fs *FileStat) isDir(path string) bool {
 }
 
 // Check if a given path exists
-func (fs *FileStat) exists(path string) bool {
+func (fs *FileStat) Exists(path string) bool {
 	if fs.useCache {
 		path = normalize(path)
 		// Use the read mutex
@@ -140,12 +140,8 @@ func (fs *FileStat) exists(path string) bool {
 		// Check the filesystem
 		_, err := os.Stat(path)
 		// Save to cache and return
-		if err != nil {
-			fs.exCache[path] = false
-			return false
-		}
-		fs.exCache[path] = true
-		return true
+		fs.exCache[path] = err == nil
+		return err == nil
 	}
 	_, err := os.Stat(path)
 	return err == nil

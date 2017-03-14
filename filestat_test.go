@@ -17,6 +17,6 @@ func TestInterface(t *testing.T) {
 
 func TestExists(t *testing.T) {
 	fs := NewFileStat(false, 0)
-	assert.Equal(t, fs.exists("LICENSE"), true)
-	assert.NotEqual(t, fs.exists("LICENSES-SCHMISENCES"), true)
+	assert.Equal(t, fs.Exists("LICENSE"), true)
+	assert.NotEqual(t, fs.Exists("LICENSES-SCHMISENCES"), true)
 }

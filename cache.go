@@ -1,4 +1,4 @@
-package filecache
+package datablock
 
 import (
 	"bytes"
@@ -23,6 +23,7 @@ type FileCache struct {
 	compress          bool              // Enable data compression
 	maxEntitySize     uint64            // Maximum size per entity in cache
 	compressionSpeed  bool              // Prioritize faster or better compression?
+	verbose           bool              // Verbose mode?
 }
 
 var (
@@ -208,7 +209,7 @@ func (cache *FileCache) storeData(filename string, data []byte) (storedDataBlock
 		}
 
 		// Remove it
-		if verboseMode {
+		if cache.verbose {
 			logrus.Info(fmt.Sprintf("Removing the unpopular %v from the cache (%d bytes)", removeID, cache.dataSize(removeID)))
 		}
 
@@ -225,7 +226,7 @@ func (cache *FileCache) storeData(filename string, data []byte) (storedDataBlock
 		}
 	}
 
-	if verboseMode {
+	if cache.verbose {
 		logrus.Info(fmt.Sprintf("Storing in cache: %v", id))
 	}
 
@@ -314,7 +315,7 @@ func (cache *FileCache) fetchAndCache(filename string) (*DataBlock, error) {
 	fileCached := cache.hasFile(id)
 
 	if !fileCached {
-		if verboseMode {
+		if cache.verbose {
 			logrus.Info("Reading from disk: " + string(id))
 			logrus.Info("Storing in cache: " + string(id))
 		}
@@ -322,7 +323,7 @@ func (cache *FileCache) fetchAndCache(filename string) (*DataBlock, error) {
 		// Cache errors are logged as warnings, and not being returned
 		if err != nil {
 			// Log cache errors as warnings (could be that the file is too large)
-			if verboseMode {
+			if cache.verbose {
 				logrus.Warn(err)
 			}
 		}
@@ -334,7 +335,7 @@ func (cache *FileCache) fetchAndCache(filename string) (*DataBlock, error) {
 		return block, nil
 	}
 
-	if verboseMode {
+	if cache.verbose {
 		logrus.Info("Retrieving from cache: " + string(id))
 	}
 
@@ -369,7 +370,7 @@ func (cache *FileCache) stats() string {
 
 	var buf bytes.Buffer
 	buf.WriteString("Cache information:\n")
-	buf.WriteString(fmt.Sprintf("\tCompression:\t%s\n", enabledStatus(cache.compress)))
+	buf.WriteString(fmt.Sprintf("\tCompression:\t%s\n", map[bool]string{true: "enabled", false: "disabled"}[cache.compress]))
 	buf.WriteString(fmt.Sprintf("\tTotal cache:\t%d bytes\n", cache.size))
 	buf.WriteString(fmt.Sprintf("\tFree cache:\t%d bytes\n", cache.freeSpace()))
 	buf.WriteString(fmt.Sprintf("\tEnd of data:\tat %d\n", cache.offset))
@@ -416,7 +417,7 @@ func (cache *FileCache) read(filename string, cached bool) (*DataBlock, error) {
 	}
 	// Normalize the filename
 	filename = string(cache.normalize(filename))
-	if verboseMode {
+	if cache.verbose {
 		logrus.Info("Reading from disk: " + filename)
 	}
 	// Read the file

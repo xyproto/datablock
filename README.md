@@ -1,2 +1,3 @@
 # filecache
-Module for caching files
+
+Go module for caching files and stat calls.

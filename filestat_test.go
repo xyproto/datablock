@@ -7,10 +7,10 @@ import (
 
 func TestInterface(t *testing.T) {
 	fs := NewFileStat(false, 0)
-	if !fs.isDir(".") {
+	if !fs.IsDir(".") {
 		t.Error("isDir failed to recognize .")
 	}
-	if !fs.isDir("/") {
+	if !fs.IsDir("/") {
 		t.Error("isDir failed to recognize /")
 	}
 }

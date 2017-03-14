@@ -47,7 +47,7 @@ var (
 // cacheSize is the total cache size, in bytes.
 // compress is for enabling compression of cache data.
 // maxEntitySize is for setting a per-file maximum size.
-func newFileCache(cacheSize uint64, compress bool, maxEntitySize uint64) *FileCache {
+func NewFileCache(cacheSize uint64, compress bool, maxEntitySize uint64) *FileCache {
 	var cache FileCache
 	cache.size = cacheSize
 	cache.blob = make([]byte, cacheSize) // The cache storage
@@ -364,7 +364,7 @@ func (cache *FileCache) freeSpace() uint64 {
 }
 
 // Return formatted cache statistics
-func (cache *FileCache) stats() string {
+func (cache *FileCache) Stats() string {
 	cache.rw.Lock()
 	defer cache.rw.Unlock()
 
@@ -393,7 +393,7 @@ func (cache *FileCache) stats() string {
 }
 
 // Clear the entire cache
-func (cache *FileCache) clear() {
+func (cache *FileCache) Clear() {
 	cache.rw.Lock()
 	defer cache.rw.Unlock()
 
@@ -410,7 +410,7 @@ func (cache *FileCache) clear() {
 }
 
 // For reading files, with optional caching.
-func (cache *FileCache) read(filename string, cached bool) (*DataBlock, error) {
+func (cache *FileCache) Read(filename string, cached bool) (*DataBlock, error) {
 	if cached {
 		// Read the file from cache (or disk, if not cached)
 		return cache.fetchAndCache(filename)

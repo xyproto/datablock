@@ -47,7 +47,8 @@ var (
 // cacheSize is the total cache size, in bytes.
 // compress is for enabling compression of cache data.
 // maxEntitySize is for setting a per-file maximum size.
-func NewFileCache(cacheSize uint64, compress bool, maxEntitySize uint64) *FileCache {
+// compressionSpeed is if speedy compression should be used over compact compression.
+func NewFileCache(cacheSize uint64, compress bool, maxEntitySize uint64, compressionSpeed bool) *FileCache {
 	var cache FileCache
 	cache.size = cacheSize
 	cache.blob = make([]byte, cacheSize) // The cache storage
@@ -56,7 +57,7 @@ func NewFileCache(cacheSize uint64, compress bool, maxEntitySize uint64) *FileCa
 	cache.rw = &sync.RWMutex{}
 	cache.compress = compress
 	cache.maxEntitySize = maxEntitySize
-	cache.compressionSpeed = preferSpeed // Prioritize compression speed over better compression? set in datablock.go
+	cache.compressionSpeed = compressionSpeed // Prioritize compression speed over better compression? set in datablock.go
 	return &cache
 }
 
@@ -242,7 +243,7 @@ func (cache *FileCache) storeData(filename string, data []byte) (storedDataBlock
 	// Move the offset to the end of the data (the next free location)
 	cache.offset += uint64(fileSize)
 
-	return newDataBlockSpecified(data, cache.compress), nil
+	return newDataBlockSpecified(data, cache.compress, cache.compressionSpeed), nil
 }
 
 // Check if the given filename exists in the cache
@@ -300,7 +301,7 @@ func (cache *FileCache) storeFile(filename string) (*DataBlock, bool, error) {
 	_, err = cache.storeData(filename, data)
 
 	// Return the uncompressed data
-	return NewDataBlock(data), true, err
+	return NewDataBlock(data, cache.compressionSpeed), true, err
 }
 
 // Retrieve a file from the cache, or from disk
@@ -356,7 +357,7 @@ func (cache *FileCache) fetchAndCache(filename string) (*DataBlock, error) {
 	cache.hits[id]++
 
 	// Return the data block
-	return newDataBlockSpecified(data, cache.compress), nil
+	return newDataBlockSpecified(data, cache.compress, cache.compressionSpeed), nil
 }
 
 func (cache *FileCache) freeSpace() uint64 {
@@ -426,5 +427,5 @@ func (cache *FileCache) Read(filename string, cached bool) (*DataBlock, error) {
 		return nil, err
 	}
 	// Return the uncompressed data
-	return NewDataBlock(data), nil
+	return NewDataBlock(data, cache.compressionSpeed), nil
 }

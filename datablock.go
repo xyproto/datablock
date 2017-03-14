@@ -12,28 +12,29 @@ import (
 	"time"
 )
 
-var preferSpeed = true // prefer speed over best compression ratio?
-
 // DataBlock represents a block of data that may be compressed
 type DataBlock struct {
-	data       []byte
-	compressed bool
-	length     int
+	data             []byte
+	compressed       bool
+	length           int
+	compressionSpeed bool // prefer speed over best compression ratio?
 }
 
 var (
 	// EmptyDataBlock is an empty data block
-	EmptyDataBlock = &DataBlock{[]byte{}, false, 0}
+	EmptyDataBlock = &DataBlock{[]byte{}, false, 0, true}
 )
 
 // NewDataBlock creates a new uncompressed data block.
-func NewDataBlock(data []byte) *DataBlock {
-	return &DataBlock{data, false, len(data)}
+// compressionSpeed is if speedy compression should be used over compact compression
+func NewDataBlock(data []byte, compressionSpeed bool) *DataBlock {
+	return &DataBlock{data, false, len(data), compressionSpeed}
 }
 
 // Create a new data block where the data may already be compressed.
-func newDataBlockSpecified(data []byte, compressed bool) *DataBlock {
-	return &DataBlock{data, compressed, len(data)}
+// compressionSpeed is if speedy compression should be used over compact compression
+func newDataBlockSpecified(data []byte, compressed bool, compressionSpeed bool) *DataBlock {
+	return &DataBlock{data, compressed, len(data), compressionSpeed}
 }
 
 // UncompressedData returns the the original, uncompressed data,
@@ -68,7 +69,7 @@ func (b *DataBlock) String() string {
 // Will compress if needed.
 func (b *DataBlock) Gzipped() ([]byte, int, error) {
 	if !b.compressed {
-		return compress(b.data, preferSpeed)
+		return compress(b.data, b.compressionSpeed)
 	}
 	return b.data, b.length, nil
 }
@@ -78,7 +79,7 @@ func (b *DataBlock) Compress() error {
 	if b.compressed {
 		return nil
 	}
-	data, bytesWritten, err := compress(b.data, preferSpeed)
+	data, bytesWritten, err := compress(b.data, b.compressionSpeed)
 	if err != nil {
 		return err
 	}

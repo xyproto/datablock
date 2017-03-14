@@ -82,7 +82,7 @@ func normalize(filename string) string {
 	return filename
 }
 
-// Check if a given path is a directory
+// IsDir checks if a given path is a directory
 func (fs *FileStat) IsDir(path string) bool {
 	if fs.useCache {
 		path = normalize(path)
@@ -121,7 +121,7 @@ func (fs *FileStat) IsDir(path string) bool {
 	return fileInfo.IsDir()
 }
 
-// Check if a given path exists
+// Exists check if a given path exists
 func (fs *FileStat) Exists(path string) bool {
 	if fs.useCache {
 		path = normalize(path)

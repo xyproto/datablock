@@ -43,7 +43,7 @@ var (
 	ErrEntityTooLarge = errors.New("Data is larger than the allowed size.")
 )
 
-// Creates a new FileCache struct.
+// NewFileCache creates a new FileCache struct.
 // cacheSize is the total cache size, in bytes.
 // compress is for enabling compression of cache data.
 // maxEntitySize is for setting a per-file maximum size.
@@ -363,7 +363,7 @@ func (cache *FileCache) freeSpace() uint64 {
 	return cache.size - cache.offset
 }
 
-// Return formatted cache statistics
+// Stats returns formatted cache statistics
 func (cache *FileCache) Stats() string {
 	cache.rw.Lock()
 	defer cache.rw.Unlock()

@@ -6,13 +6,6 @@ import (
 	"time"
 )
 
-const (
-	// KiB is a kilobyte
-	KiB = 1024
-	// MiB is a megabyte
-	MiB = 1024 * 1024
-)
-
 // FileStat can cache calls to os.Stat. This requires that the user wants to
 // assume that no files are removed from the server directory while the server
 // is running, to gain some additional speed (and a tiny bit of memory use for

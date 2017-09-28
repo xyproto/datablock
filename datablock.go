@@ -2,7 +2,7 @@ package datablock
 
 import (
 	"bytes"
-	"github.com/klauspost/pgzip"
+	"compress/gzip"
 	"github.com/mattetti/filebuffer"
 	log "github.com/sirupsen/logrus"
 	"io"
@@ -165,7 +165,7 @@ func (b *DataBlock) ToClient(w http.ResponseWriter, req *http.Request, name stri
 	http.ServeContent(w, req, name, time.Time{}, filebuffer.New(b.data))
 }
 
-// Compress data using pgzip. Returns the data, data length and an error.
+// Compress data using gzip. Returns the data, data length and an error.
 func compress(data []byte, speed bool) ([]byte, int, error) {
 	if len(data) == 0 {
 		return []byte{}, 0, nil
@@ -179,7 +179,7 @@ func compress(data []byte, speed bool) ([]byte, int, error) {
 	return data, len(data), nil
 }
 
-// Decompress data using pgzip. Returns the data, data length and an error.
+// Decompress data using gzip. Returns the data, data length and an error.
 func decompress(data []byte) ([]byte, int, error) {
 	if len(data) == 0 {
 		return []byte{}, 0, nil
@@ -196,11 +196,11 @@ func decompress(data []byte) ([]byte, int, error) {
 // Write gzipped data to a Writer. Returns bytes written and an error.
 func gzipWrite(w io.Writer, data []byte, speed bool) (int, error) {
 	// Write gzipped data to the client
-	level := pgzip.BestCompression
+	level := gzip.BestCompression
 	if speed {
-		level = pgzip.BestSpeed
+		level = gzip.BestSpeed
 	}
-	gw, err := pgzip.NewWriterLevel(w, level)
+	gw, err := gzip.NewWriterLevel(w, level)
 	if err != nil {
 		return 0, err
 	}
@@ -215,7 +215,7 @@ func gzipWrite(w io.Writer, data []byte, speed bool) (int, error) {
 // Write gunzipped data to a Writer. Returns bytes written and an error.
 func gunzipWrite(w io.Writer, data []byte) (int, error) {
 	// Write gzipped data to the client
-	gr, err := pgzip.NewReader(bytes.NewBuffer(data))
+	gr, err := gzip.NewReader(bytes.NewBuffer(data))
 	if err != nil {
 		return 0, err
 	}

@@ -12,12 +12,12 @@ import (
 )
 
 func TestID(t *testing.T) {
-	cache := NewFileCache(1, false, 0, true)
+	cache := NewFileCache(1, false, 0, true, 0)
 	_ = cache.normalize("test.filename")
 }
 
 func TestHas(t *testing.T) {
-	cache := NewFileCache(1, false, 0, true)
+	cache := NewFileCache(1, false, 0, true, 0)
 	cache.cacheWarningGiven = true // Silence warning when the cache is full
 	readmeID := cache.normalize("README.md")
 	if cache.hasFile(readmeID) {
@@ -26,7 +26,7 @@ func TestHas(t *testing.T) {
 }
 
 func TestStore(t *testing.T) {
-	cache := NewFileCache(100000, false, 0, true)
+	cache := NewFileCache(100000, false, 0, true, 0)
 	data, err := ioutil.ReadFile("README.md")
 	if err != nil {
 		t.Error(err)
@@ -41,7 +41,7 @@ func TestStore(t *testing.T) {
 }
 
 func TestLoad(t *testing.T) {
-	cache := NewFileCache(100000, false, 0, true)
+	cache := NewFileCache(100000, false, 0, true, 0)
 	readmeData, err := ioutil.ReadFile("README.md")
 	if err != nil {
 		t.Error(err)
@@ -87,7 +87,7 @@ func TestLoad(t *testing.T) {
 }
 
 func TestOverflow(t *testing.T) {
-	cache := NewFileCache(100000, false, 0, true)
+	cache := NewFileCache(100000, false, 0, true, 0)
 	data, err := ioutil.ReadFile("README.md")
 	assert.Equal(t, err, nil)
 	// Repeatedly store a file until the cache is full
@@ -111,7 +111,7 @@ func differs(a, b []byte) bool {
 }
 
 func TestRemovalAddition(t *testing.T) {
-	cache := NewFileCache(8, false, 0, true)
+	cache := NewFileCache(8, false, 0, true, 0)
 	cache.cacheWarningGiven = true // Silence warning when the cache is full
 	adata := []byte{1, 1, 1, 1}
 	bdata := []byte{2, 2, 2, 2}
@@ -165,7 +165,7 @@ func TestRemovalAddition(t *testing.T) {
 
 func TestRandomStoreGet(t *testing.T) {
 	const cacheSize = 5
-	cache := NewFileCache(5, false, 0, true)
+	cache := NewFileCache(5, false, 0, true, 0)
 	cache.cacheWarningGiven = true // Silence warning when the cache is full
 	filenames := []string{"a", "b", "c"}
 	datasets := [][]byte{{0, 1, 2}, {3, 4, 5, 6}, {7}}
@@ -242,7 +242,7 @@ func TestRandomStoreGet(t *testing.T) {
 }
 
 func TestCompression(t *testing.T) {
-	cache := NewFileCache(100000, true, 0, true)
+	cache := NewFileCache(100000, true, 0, true, 0)
 	assert.Equal(t, true, cache.IsEmpty())
 	readmeData, err := ioutil.ReadFile("README.md")
 	assert.Equal(t, err, nil)
@@ -287,7 +287,7 @@ func TestCompression(t *testing.T) {
 }
 
 func TestClear(t *testing.T) {
-	cache := NewFileCache(1000, true, 0, true)
+	cache := NewFileCache(1000, true, 0, true, 0)
 	assert.Equal(t, cache.size, cache.freeSpace())
 	readmeData, err := ioutil.ReadFile("README.md")
 	assert.Equal(t, err, nil)
@@ -302,13 +302,13 @@ func TestClear(t *testing.T) {
 }
 
 func TestStats(t *testing.T) {
-	cache := NewFileCache(123, true, 0, true)
+	cache := NewFileCache(123, true, 0, true, 0)
 	assert.Equal(t, strings.Contains(cache.Stats(), "123 bytes"), true)
 }
 
 func TestRead(t *testing.T) {
 	// New file cache
-	cache := NewFileCache(2000, true, 0, true)
+	cache := NewFileCache(2000, true, 0, true, 0)
 	// Open a tempfile
 	tmpfile, err := ioutil.TempFile("", "example")
 	assert.Equal(t, err, nil)

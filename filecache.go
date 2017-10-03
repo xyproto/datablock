@@ -4,9 +4,10 @@ import (
 	"bytes"
 	"errors"
 	"fmt"
-	"github.com/sirupsen/logrus"
 	"io/ioutil"
 	"sync"
+
+	"github.com/sirupsen/logrus"
 )
 
 const emptyFileID = ""
@@ -24,6 +25,7 @@ type FileCache struct {
 	maxEntitySize     uint64            // Maximum size per entity in cache
 	compressionSpeed  bool              // Prioritize faster or better compression?
 	verbose           bool              // Verbose mode?
+	maxGivenDataSize  uint64            // Maximum size of uncompressed data to be stored in cache
 }
 
 var (
@@ -41,14 +43,18 @@ var (
 
 	// ErrEntityTooLarge is used if a maximum size per entity has been set
 	ErrEntityTooLarge = errors.New("Data is larger than the allowed size.")
+
+	// ErrUncompressedSizeTooLarge is returned if the uncompressed size of the given data is too large
+	ErrGivenDataSizeTooLarge = errors.New("The size of the given data is larger than allowed size.")
 )
 
 // NewFileCache creates a new FileCache struct.
 // cacheSize is the total cache size, in bytes.
 // compress is for enabling compression of cache data.
-// maxEntitySize is for setting a per-file maximum size.
+// maxEntitySize is for setting a per-file maximum size. (0 to disable)
 // compressionSpeed is if speedy compression should be used over compact compression.
-func NewFileCache(cacheSize uint64, compress bool, maxEntitySize uint64, compressionSpeed bool) *FileCache {
+// maxGivenDataSize is the maximum amount of bytes that can be given at once. (0 to disable, 1 MiB is recommended)
+func NewFileCache(cacheSize uint64, compress bool, maxEntitySize uint64, compressionSpeed bool, maxGivenDataSize uint64) *FileCache {
 	var cache FileCache
 	cache.size = cacheSize
 	cache.blob = make([]byte, cacheSize) // The cache storage
@@ -56,8 +62,9 @@ func NewFileCache(cacheSize uint64, compress bool, maxEntitySize uint64, compres
 	cache.hits = make(map[string]uint64)
 	cache.rw = &sync.RWMutex{}
 	cache.compress = compress
-	cache.maxEntitySize = maxEntitySize
+	cache.maxEntitySize = maxEntitySize       // Maximum size of data when stored in the cache (possibly compressed). (0 to disable)
 	cache.compressionSpeed = compressionSpeed // Prioritize compression speed over better compression? set in datablock.go
+	cache.maxGivenDataSize = maxGivenDataSize // Maximum size of given data to be stored in cache (0 to disable)
 	return &cache
 }
 
@@ -167,6 +174,11 @@ func (cache *FileCache) leastPopular() (string, error) {
 // Store a file in the cache
 // Returns the data (it may be compressed) and an error
 func (cache *FileCache) storeData(filename string, data []byte) (storedDataBlock *DataBlock, err error) {
+	// Check if the given data is too large before attempting to compress it
+	if cache.maxGivenDataSize != 0 && uint64(len(data)) > cache.maxGivenDataSize {
+		return nil, ErrGivenDataSizeTooLarge
+	}
+
 	// Compress the data, if compression is enabled
 	var fileSize uint64
 	if cache.compress {

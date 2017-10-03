@@ -44,7 +44,7 @@ var (
 	// ErrEntityTooLarge is used if a maximum size per entity has been set
 	ErrEntityTooLarge = errors.New("Data is larger than the allowed size.")
 
-	// ErrUncompressedSizeTooLarge is returned if the uncompressed size of the given data is too large
+	// ErrGivenDataSizeTooLarge is returned if the uncompressed size of the given data is too large
 	ErrGivenDataSizeTooLarge = errors.New("The size of the given data is larger than allowed size.")
 )
 

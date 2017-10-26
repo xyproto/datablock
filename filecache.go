@@ -441,14 +441,3 @@ func (cache *FileCache) Read(filename string, cached bool) (*DataBlock, error) {
 	// Return the uncompressed data
 	return NewDataBlock(data, cache.compressionSpeed), nil
 }
-
-// MustString returns the contents of the given filename as a string.
-// Does not use the cache.  Returns an empty string if there were errors.
-func (cache *FileCache) MustString(filename string) string {
-	if d, err := cache.Read(filename, false); err == nil {
-		// No error, return the datablock as a string
-		return d.String()
-	}
-	// There were errors, return an empty string
-	return ""
-}

@@ -30,22 +30,22 @@ type FileCache struct {
 
 var (
 	// ErrRemoval is used if a filename that does not exist is attempted to be removed
-	ErrRemoval = errors.New("Can't remove a file ID that does not exist")
+	ErrRemoval = errors.New("can't remove a file ID that does not exist")
 
 	// ErrNoData is used if no data is attempted to be stored in the cache
-	ErrNoData = errors.New("No data")
+	ErrNoData = errors.New("no data")
 
 	// ErrAlreadyStored is used if a given filename has already been stored in the cache
-	ErrAlreadyStored = errors.New("That file ID is already stored")
+	ErrAlreadyStored = errors.New("file ID is already stored")
 
 	// ErrLargerThanCache is used if the given data is larger than the total cache size
-	ErrLargerThanCache = errors.New("Data is larger than the the total cache size")
+	ErrLargerThanCache = errors.New("data is larger than the the total cache size")
 
 	// ErrEntityTooLarge is used if a maximum size per entity has been set
-	ErrEntityTooLarge = errors.New("Data is larger than the allowed size.")
+	ErrEntityTooLarge = errors.New("data is larger than the allowed size")
 
 	// ErrGivenDataSizeTooLarge is returned if the uncompressed size of the given data is too large
-	ErrGivenDataSizeTooLarge = errors.New("The size of the given data is larger than allowed size.")
+	ErrGivenDataSizeTooLarge = errors.New("size of given data is larger than allowed")
 )
 
 // NewFileCache creates a new FileCache struct.
@@ -440,4 +440,15 @@ func (cache *FileCache) Read(filename string, cached bool) (*DataBlock, error) {
 	}
 	// Return the uncompressed data
 	return NewDataBlock(data, cache.compressionSpeed), nil
+}
+
+// MustString returns the contents of the given filename as a string.
+// Does not use the cache.  Returns an empty string if there were errors.
+func (cache *FileCache) MustString(filename string) string {
+	if d, err := cache.Read(filename, false); err == nil {
+		// No error, return the datablock as a string
+		return d.String()
+	}
+	// There were errors, return an empty string
+	return ""
 }

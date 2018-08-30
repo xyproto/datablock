@@ -9,6 +9,7 @@ import (
 	"io/ioutil"
 	"net/http"
 	"strconv"
+	"sync"
 	"time"
 )
 
@@ -17,24 +18,25 @@ type DataBlock struct {
 	data             []byte
 	compressed       bool
 	length           int
-	compressionSpeed bool // prefer speed over best compression ratio?
+	compressionSpeed bool          // prefer speed over best compression ratio?
+	rw               *sync.RWMutex // mutex for protecting the data while compressing/decompressing or reading the data, in exported functions
 }
 
 var (
 	// EmptyDataBlock is an empty data block
-	EmptyDataBlock = &DataBlock{[]byte{}, false, 0, true}
+	EmptyDataBlock = &DataBlock{[]byte{}, false, 0, true, &sync.RWMutex{}}
 )
 
 // NewDataBlock creates a new uncompressed data block.
 // compressionSpeed is if speedy compression should be used over compact compression
 func NewDataBlock(data []byte, compressionSpeed bool) *DataBlock {
-	return &DataBlock{data, false, len(data), compressionSpeed}
+	return &DataBlock{data, false, len(data), compressionSpeed, &sync.RWMutex{}}
 }
 
 // Create a new data block where the data may already be compressed.
 // compressionSpeed is if speedy compression should be used over compact compression
 func newDataBlockSpecified(data []byte, compressed bool, compressionSpeed bool) *DataBlock {
-	return &DataBlock{data, compressed, len(data), compressionSpeed}
+	return &DataBlock{data, compressed, len(data), compressionSpeed, &sync.RWMutex{}}
 }
 
 // UncompressedData returns the the original, uncompressed data,
@@ -48,6 +50,8 @@ func (b *DataBlock) UncompressedData() ([]byte, int, error) {
 
 // MustData returns the uncompressed data or an empty byte slice
 func (b *DataBlock) MustData() []byte {
+	b.rw.RLock()
+	defer b.rw.RUnlock()
 	if b.compressed {
 		data, _, err := decompress(b.data)
 		if err != nil {
@@ -68,9 +72,13 @@ func (b *DataBlock) String() string {
 // Gzipped returns the compressed data, length and an error.
 // Will compress if needed.
 func (b *DataBlock) Gzipped() ([]byte, int, error) {
+	b.rw.RLock()
+	defer b.rw.RUnlock()
+
 	if !b.compressed {
 		return compress(b.data, b.compressionSpeed)
 	}
+
 	return b.data, b.length, nil
 }
 
@@ -83,6 +91,9 @@ func (b *DataBlock) Compress() error {
 	if err != nil {
 		return err
 	}
+	// Replace the data in the datablock, locked by a mutex
+	b.rw.Lock()
+	defer b.rw.Unlock()
 	b.data = data
 	b.compressed = true
 	b.length = bytesWritten
@@ -98,6 +109,9 @@ func (b *DataBlock) Decompress() error {
 	if err != nil {
 		return err
 	}
+	// Replace the data in the datablock, locked by a mutex
+	b.rw.Lock()
+	defer b.rw.Unlock()
 	b.data = data
 	b.compressed = false
 	b.length = bytesWritten
@@ -157,11 +171,10 @@ func (b *DataBlock) ToClient(w http.ResponseWriter, req *http.Request, name stri
 		}
 	}
 
-	// Done by ServeContent instead
-	//w.Header().Set("Content-Length", b.StringLength())
-	//w.Write(b.data)
-
-	// Serve the data with http.ServeContent, which supports ranges/streaming
+	// Serve the data with http.ServeContent, which supports ranges/streaming.
+	// Also sets Content-Length to b.StringLength() and write that to w.
+	b.rw.RLock()
+	defer b.rw.RUnlock()
 	http.ServeContent(w, req, name, time.Time{}, filebuffer.New(b.data))
 }
 

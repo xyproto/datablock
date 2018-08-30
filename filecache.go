@@ -6,6 +6,7 @@ import (
 	"fmt"
 	"io/ioutil"
 	"sync"
+	"time"
 
 	"github.com/sirupsen/logrus"
 )
@@ -26,6 +27,7 @@ type FileCache struct {
 	compressionSpeed  bool              // Prioritize faster or better compression?
 	verbose           bool              // Verbose mode?
 	maxGivenDataSize  uint64            // Maximum size of uncompressed data to be stored in cache
+	bgCompress        bool              // Compress the data in the background, if possible
 }
 
 var (
@@ -46,6 +48,9 @@ var (
 
 	// ErrGivenDataSizeTooLarge is returned if the uncompressed size of the given data is too large
 	ErrGivenDataSizeTooLarge = errors.New("size of given data is larger than allowed")
+
+	// How long to wait after new data has arrived before starting to compress it in the background
+	backgroundCompressionDelay = time.Second * 5
 )
 
 // NewFileCache creates a new FileCache struct.
@@ -65,7 +70,16 @@ func NewFileCache(cacheSize uint64, compress bool, maxEntitySize uint64, compres
 	cache.maxEntitySize = maxEntitySize       // Maximum size of data when stored in the cache (possibly compressed). (0 to disable)
 	cache.compressionSpeed = compressionSpeed // Prioritize compression speed over better compression? set in datablock.go
 	cache.maxGivenDataSize = maxGivenDataSize // Maximum size of given data to be stored in cache (0 to disable)
+	cache.bgCompress = false                  // When storing compressed data, do the compression in the background?
 	return &cache
+}
+
+// EnableBackgroundCompression enables the compression to run in the background when storing new data.
+// This can give a small speed increase when serving files that are not already in the cache.
+// delay is how long to wait after new data is added before starting to compress it in the background.
+func (cache *FileCache) EnableBackgroundCompression(delay time.Duration) {
+	cache.bgCompress = true
+	backgroundCompressionDelay = delay
 }
 
 // Normalize the filename
@@ -149,7 +163,8 @@ func (cache *FileCache) leastPopular() (string, error) {
 		firstRound  = true
 	)
 
-	// Loop through all the data and find the one with the least cache hits
+	// Loop through all the data and find the one with the least cache hits.
+	// Note that cache.index is a map and that id is the key.
 	for id := range cache.index {
 		// If there is a cache hit, check if it is the first round
 		if firstRound {
@@ -174,14 +189,16 @@ func (cache *FileCache) leastPopular() (string, error) {
 // Store a file in the cache
 // Returns the data (it may be compressed) and an error
 func (cache *FileCache) storeData(filename string, data []byte) (storedDataBlock *DataBlock, err error) {
+	uncompressedDataLength := uint64(len(data))
 	// Check if the given data is too large before attempting to compress it
-	if cache.maxGivenDataSize != 0 && uint64(len(data)) > cache.maxGivenDataSize {
+	if cache.maxGivenDataSize != 0 && uncompressedDataLength > cache.maxGivenDataSize {
 		return nil, ErrGivenDataSizeTooLarge
 	}
 
 	// Compress the data, if compression is enabled
 	var fileSize uint64
-	if cache.compress {
+	if cache.compress && !cache.bgCompress {
+		// If we are to compress the data right now:
 		compressedData, dataLength, err := compress(data, cache.compressionSpeed)
 		if err != nil {
 			return nil, fmt.Errorf("Compression error: %s", err)
@@ -189,7 +206,8 @@ func (cache *FileCache) storeData(filename string, data []byte) (storedDataBlock
 		data = compressedData
 		fileSize = uint64(dataLength)
 	} else {
-		fileSize = uint64(len(data))
+		// Data is stored in its uncompressed form
+		fileSize = uncompressedDataLength
 	}
 
 	id := cache.normalize(filename)
@@ -247,15 +265,25 @@ func (cache *FileCache) storeData(filename string, data []byte) (storedDataBlock
 	cache.index[id] = cache.offset
 
 	// Copy the contents to the cache
-	var i uint64
-	for i = 0; i < fileSize; i++ {
+	for i := uint64(0); i < fileSize; i++ {
 		cache.blob[cache.offset+i] = data[i]
 	}
 
 	// Move the offset to the end of the data (the next free location)
 	cache.offset += uint64(fileSize)
 
-	return newDataBlockSpecified(data, cache.compress, cache.compressionSpeed), nil
+	newDataBlock := newDataBlockSpecified(data, cache.compress, cache.compressionSpeed)
+
+	// Compress the data block in the background, in a little while after having returned the datablock
+	if cache.compress && cache.bgCompress {
+		go func() {
+			time.Sleep(backgroundCompressionDelay)
+			// This is fine, datablock.Compress() has its own mutex
+			storedDataBlock.Compress()
+		}()
+	}
+
+	return newDataBlock, nil
 }
 
 // Check if the given filename exists in the cache
@@ -360,8 +388,7 @@ func (cache *FileCache) fetchAndCache(filename string) (*DataBlock, error) {
 
 	// Copy the data from the cache
 	data := make([]byte, size)
-	var i uint64
-	for i = 0; i < size; i++ {
+	for i := uint64(0); i < size; i++ {
 		data[i] = cache.blob[startpos+i]
 	}
 
@@ -414,7 +441,7 @@ func (cache *FileCache) Clear() {
 	cache.index = make(map[string]uint64)
 	cache.hits = make(map[string]uint64)
 
-	// No need to clear the actual bytes, unless perhaps if there should be
+	// No need to clear the underlying data, unless there are
 	// changes to the caching algorithm in the future.
 	//cache.blob = make([]byte, cache.size)
 

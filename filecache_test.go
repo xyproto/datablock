@@ -6,6 +6,7 @@ import (
 	"os"
 	"strings"
 	"testing"
+	"time"
 
 	"github.com/bmizerany/assert"
 	"github.com/xyproto/cookie"
@@ -328,6 +329,63 @@ func TestRead(t *testing.T) {
 	os.Remove(tmpfile.Name())
 	// Read tempfile from cache, it's gone from disk
 	readmeData2, err := cache.Read(tmpfile.Name(), true)
+	assert.Equal(t, err, nil)
+	// Check if strings are equal
+	assert.Equal(t, string(content), readmeData2.String())
+	// Try (and fail) to read data from disk, not from cache
+	_, err = cache.Read(tmpfile.Name(), false)
+	assert.NotEqual(t, err, nil) // Supposed to be an error
+}
+
+func TestBackgroundCompression(t *testing.T) {
+	// New file cache
+	cache := NewFileCache(2000, true, 0, true, 0)
+	cache.EnableBackgroundCompression(1 * time.Second)
+	// Open a tempfile
+	tmpfile, err := ioutil.TempFile("", "example")
+	assert.Equal(t, err, nil)
+	// Write data to tempfile
+	content := []byte("SHOW ME WHAT YOU GOT")
+	_, err = tmpfile.Write(content)
+	assert.Equal(t, err, nil)
+	// Close tempfile
+	err = tmpfile.Close()
+	assert.Equal(t, err, nil)
+	// Read tempfile into cache, from disk
+	readmeData, err := cache.Read(tmpfile.Name(), true)
+	assert.Equal(t, err, nil)
+	// Check if data is equal
+	assert.Equal(t, content, readmeData.MustData())
+	// Remove tempfile
+	os.Remove(tmpfile.Name())
+	// Read tempfile from cache, it's gone from disk
+	readmeData2, err := cache.Read(tmpfile.Name(), true)
+	assert.Equal(t, err, nil)
+	// Check if strings are equal
+	assert.Equal(t, string(content), readmeData2.String())
+	// Try (and fail) to read data from disk, not from cache
+	_, err = cache.Read(tmpfile.Name(), false)
+	assert.NotEqual(t, err, nil) // Supposed to be an error
+	// Wait 1.5 seconds
+	time.Sleep(1 * time.Second)
+	// Open a tempfile
+	tmpfile, err = ioutil.TempFile("", "example")
+	assert.Equal(t, err, nil)
+	// Write data to tempfile
+	_, err = tmpfile.Write(content)
+	assert.Equal(t, err, nil)
+	// Close tempfile
+	err = tmpfile.Close()
+	assert.Equal(t, err, nil)
+	// Read tempfile into cache, from disk
+	readmeData, err = cache.Read(tmpfile.Name(), true)
+	assert.Equal(t, err, nil)
+	// Check if data is equal
+	assert.Equal(t, content, readmeData.MustData())
+	// Remove tempfile
+	os.Remove(tmpfile.Name())
+	// Read tempfile from cache, it's gone from disk
+	readmeData2, err = cache.Read(tmpfile.Name(), true)
 	assert.Equal(t, err, nil)
 	// Check if strings are equal
 	assert.Equal(t, string(content), readmeData2.String())

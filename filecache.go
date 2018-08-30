@@ -272,7 +272,12 @@ func (cache *FileCache) storeData(filename string, data []byte) (storedDataBlock
 	// Move the offset to the end of the data (the next free location)
 	cache.offset += uint64(fileSize)
 
-	newDataBlock := newDataBlockSpecified(data, cache.compress, cache.compressionSpeed)
+	var newDataBlock *DataBlock
+	if cache.bgCompress {
+		newDataBlock = newDataBlockSpecified(data, false, cache.compressionSpeed)
+	} else {
+   		newDataBlock = newDataBlockSpecified(data, cache.compress, cache.compressionSpeed)
+	}
 
 	// Compress the data block in the background, in a little while after having returned the datablock
 	if cache.compress && cache.bgCompress {

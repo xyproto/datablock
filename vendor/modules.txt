@@ -1,0 +1,18 @@
+# github.com/bmizerany/assert v0.0.0-20160611221934-b7ed37b82869
+github.com/bmizerany/assert
+# github.com/konsorten/go-windows-terminal-sequences v1.0.2
+github.com/konsorten/go-windows-terminal-sequences
+# github.com/kr/pretty v0.1.0
+github.com/kr/pretty
+# github.com/kr/text v0.1.0
+github.com/kr/text
+# github.com/mattetti/filebuffer v1.0.0
+github.com/mattetti/filebuffer
+# github.com/sirupsen/logrus v1.4.2
+github.com/sirupsen/logrus
+# github.com/xyproto/cookie v0.0.0-20181220103240-f4de411f45ff
+github.com/xyproto/cookie
+# github.com/xyproto/randomstring v0.0.0-20181222003104-0f764aabc45a
+github.com/xyproto/randomstring
+# golang.org/x/sys v0.0.0-20190618155005-516e3c20635f
+golang.org/x/sys/unix

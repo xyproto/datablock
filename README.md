@@ -17,6 +17,6 @@ Online API Documentation
 General information
 -------------------
 
-* Version: 1.1.0
+* Version: 1.2.0
 * License: BSD-3
 * Alexander F Rødseth &lt;xyproto@archlinux.org&gt;

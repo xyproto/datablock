@@ -169,7 +169,7 @@ func TestRandomStoreGet(t *testing.T) {
 	cache.cacheWarningGiven = true // Silence warning when the cache is full
 	filenames := []string{"a", "b", "c"}
 	datasets := [][]byte{{0, 1, 2}, {3, 4, 5, 6}, {7}}
-	for i := 0; i < 100; i++ {
+	for range 100 {
 		switch rand.Intn(4) {
 		case 0, 1: // Add data to the cache
 			// Select one at random
@@ -211,7 +211,7 @@ func TestRandomStoreGet(t *testing.T) {
 				t.Fatal("WRONG LENGTH!")
 			}
 			data2 := datablock2.MustData()
-			for i := 0; i < len(data); i++ {
+			for i := range data {
 				if data[i] != data2[i] {
 					t.Fatal("WRONG BYTE!")
 				}
@@ -231,7 +231,7 @@ func TestRandomStoreGet(t *testing.T) {
 					t.Errorf("Wrong length of data: %d vs %d\n", retDataBlock.Length(), len(data))
 				}
 				retData := retDataBlock.MustData()
-				for x := 0; x < len(data); x++ {
+				for x := range data {
 					if retData[x] != data[x] {
 						t.Error("Wrong contents in cache!")
 					}

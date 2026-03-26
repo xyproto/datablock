@@ -361,7 +361,7 @@ func (cache *FileCache) fetchAndCache(filename string) (*DataBlock, error) {
 	// Copy the data from the cache
 	data := make([]byte, size)
 	var i uint64
-	for i = 0; i < size; i++ {
+	for i = range size {
 		data[i] = cache.blob[startpos+i]
 	}
 

@@ -376,6 +376,13 @@ func (cache *FileCache) freeSpace() uint64 {
 	return cache.size - cache.offset
 }
 
+// BytesUsed returns the number of bytes currently used in the cache
+func (cache *FileCache) BytesUsed() uint64 {
+	cache.rw.RLock()
+	defer cache.rw.RUnlock()
+	return cache.offset
+}
+
 // Stats returns formatted cache statistics
 func (cache *FileCache) Stats() string {
 	cache.rw.Lock()
